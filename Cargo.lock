@@ -2585,6 +2585,7 @@ dependencies = [
 name = "uucore"
 version = "0.0.8"
 dependencies = [
+ "clap",
  "data-encoding",
  "dunce",
  "getopts",

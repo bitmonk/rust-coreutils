@@ -8,6 +8,8 @@ pub mod fs;
 pub mod parse_time;
 #[cfg(feature = "zero-copy")]
 pub mod zero_copy;
+//#[cfg(feature = "backup")]
+pub mod backup;
 
 // * (platform-specific) feature-gated modules
 // ** non-windows

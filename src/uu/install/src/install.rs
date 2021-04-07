@@ -17,6 +17,7 @@ use file_diff::diff;
 use filetime::{set_file_times, FileTime};
 use uucore::entries::{grp2gid, usr2uid};
 use uucore::perms::{wrap_chgrp, wrap_chown, Verbosity};
+use uucore::backup;
 
 use libc::{getegid, geteuid};
 use std::fs;
@@ -62,8 +63,6 @@ static ABOUT: &str = "Copy SOURCE to DEST or multiple SOURCE(s) to the existing
 static VERSION: &str = env!("CARGO_PKG_VERSION");
 
 static OPT_COMPARE: &str = "compare";
-static OPT_BACKUP: &str = "backup";
-static OPT_BACKUP_2: &str = "backup2";
 static OPT_DIRECTORY: &str = "directory";
 static OPT_IGNORED: &str = "ignored";
 static OPT_CREATED: &str = "created";
@@ -98,16 +97,24 @@ pub fn uumain(args: impl uucore::Args) -> i32 {
         .about(ABOUT)
         .usage(&usage[..])
         .arg(
-                Arg::with_name(OPT_BACKUP)
-                .long(OPT_BACKUP)
-                .help("(unimplemented) make a backup of each existing destination file")
-                .value_name("CONTROL")
+            Arg::with_name(backup::OPT_BACKUP)
+            .long(backup::OPT_BACKUP)
+            .help("make a backup of each existing destination file")
+            .takes_value(true)
+            .possible_value("simple")
+            .possible_value("never")
+            .possible_value("numbered")
+            .possible_value("t")
+            .possible_value("existing")
+            .possible_value("nil")
+            .possible_value("none")
+            .possible_value("off")
+            .value_name("CONTROL")
         )
         .arg(
-            // TODO implement flag
-            Arg::with_name(OPT_BACKUP_2)
-            .short("b")
-            .help("(unimplemented) like --backup but does not accept an argument")
+                Arg::with_name(backup::OPT_BACKUP_NO_ARG)
+                .short(backup::OPT_BACKUP_NO_ARG)
+                .help("like --backup but does not accept an argument")
         )
         .arg(
             Arg::with_name(OPT_IGNORED)
@@ -260,11 +267,7 @@ pub fn uumain(args: impl uucore::Args) -> i32 {
 ///
 ///
 fn check_unimplemented<'a>(matches: &ArgMatches) -> Result<(), &'a str> {
-    if matches.is_present(OPT_BACKUP) {
-        Err("--backup")
-    } else if matches.is_present(OPT_BACKUP_2) {
-        Err("-b")
-    } else if matches.is_present(OPT_CREATED) {
+    if matches.is_present(OPT_CREATED) {
         Err("-D")
     } else if matches.is_present(OPT_STRIP) {
         Err("--strip, -s")

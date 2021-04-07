@@ -22,10 +22,11 @@ use std::os::windows;
 use std::path::{Path, PathBuf};
 
 use fs_extra::dir::{move_dir, CopyOptions as DirCopyOptions};
+use uucore::backup;
 
 pub struct Behavior {
     overwrite: OverwriteMode,
-    backup: BackupMode,
+    backup: backup::BackupMode,
     suffix: String,
     update: bool,
     target_dir: Option<String>,
@@ -40,24 +41,13 @@ pub enum OverwriteMode {
     Force,
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
-pub enum BackupMode {
-    NoBackup,
-    SimpleBackup,
-    NumberedBackup,
-    ExistingBackup,
-}
-
 static ABOUT: &str = "Move SOURCE to DEST, or multiple SOURCE(s) to DIRECTORY.";
 static VERSION: &str = env!("CARGO_PKG_VERSION");
 
-static OPT_BACKUP: &str = "backup";
-static OPT_BACKUP_NO_ARG: &str = "b";
 static OPT_FORCE: &str = "force";
 static OPT_INTERACTIVE: &str = "interactive";
 static OPT_NO_CLOBBER: &str = "no-clobber";
 static OPT_STRIP_TRAILING_SLASHES: &str = "strip-trailing-slashes";
-static OPT_SUFFIX: &str = "suffix";
 static OPT_TARGET_DIRECTORY: &str = "target-directory";
 static OPT_NO_TARGET_DIRECTORY: &str = "no-target-directory";
 static OPT_UPDATE: &str = "update";
@@ -82,8 +72,8 @@ pub fn uumain(args: impl uucore::Args) -> i32 {
         .about(ABOUT)
         .usage(&usage[..])
     .arg(
-            Arg::with_name(OPT_BACKUP)
-            .long(OPT_BACKUP)
+            Arg::with_name(backup::OPT_BACKUP)
+            .long(backup::OPT_BACKUP)
             .help("make a backup of each existing destination file")
             .takes_value(true)
             .possible_value("simple")
@@ -97,8 +87,8 @@ pub fn uumain(args: impl uucore::Args) -> i32 {
             .value_name("CONTROL")
     )
     .arg(
-            Arg::with_name(OPT_BACKUP_NO_ARG)
-            .short(OPT_BACKUP_NO_ARG)
+            Arg::with_name(backup::OPT_BACKUP_NO_ARG)
+            .short(backup::OPT_BACKUP_NO_ARG)
             .help("like --backup but does not accept an argument")
     )
     .arg(
@@ -124,9 +114,9 @@ pub fn uumain(args: impl uucore::Args) -> i32 {
             .help("remove any trailing slashes from each SOURCE argument")
     )
     .arg(
-            Arg::with_name(OPT_SUFFIX)
+            Arg::with_name(backup::OPT_SUFFIX)
             .short("S")
-            .long(OPT_SUFFIX)
+            .long(backup::OPT_SUFFIX)
             .help("override the usual backup suffix")
             .takes_value(true)
             .value_name("SUFFIX")
@@ -172,9 +162,9 @@ pub fn uumain(args: impl uucore::Args) -> i32 {
         .unwrap_or_default();
 
     let overwrite_mode = determine_overwrite_mode(&matches);
-    let backup_mode = determine_backup_mode(&matches);
+    let backup_mode = backup::determine_backup_mode(&matches);
 
-    if overwrite_mode == OverwriteMode::NoClobber && backup_mode != BackupMode::NoBackup {
+    if overwrite_mode == OverwriteMode::NoClobber && backup_mode != backup::BackupMode::NoBackup {
         show_error!(
             "options --backup and --no-clobber are mutually exclusive\n\
              Try '{} --help' for more information.",
@@ -183,7 +173,7 @@ pub fn uumain(args: impl uucore::Args) -> i32 {
         return 1;
     }
 
-    let backup_suffix = determine_backup_suffix(backup_mode, &matches);
+    let backup_suffix = backup::determine_backup_suffix(backup_mode, &matches);
 
     let behavior = Behavior {
         overwrite: overwrite_mode,
@@ -224,37 +214,6 @@ fn determine_overwrite_mode(matches: &ArgMatches) -> OverwriteMode {
         OverwriteMode::Interactive
     } else {
         OverwriteMode::Force
-    }
-}
-
-fn determine_backup_mode(matches: &ArgMatches) -> BackupMode {
-    if matches.is_present(OPT_BACKUP_NO_ARG) {
-        BackupMode::SimpleBackup
-    } else if matches.is_present(OPT_BACKUP) {
-        match matches.value_of(OPT_BACKUP).map(String::from) {
-            None => BackupMode::SimpleBackup,
-            Some(mode) => match &mode[..] {
-                "simple" | "never" => BackupMode::SimpleBackup,
-                "numbered" | "t" => BackupMode::NumberedBackup,
-                "existing" | "nil" => BackupMode::ExistingBackup,
-                "none" | "off" => BackupMode::NoBackup,
-                _ => panic!(), // cannot happen as it is managed by clap
-            },
-        }
-    } else {
-        BackupMode::NoBackup
-    }
-}
-
-fn determine_backup_suffix(backup_mode: BackupMode, matches: &ArgMatches) -> String {
-    if matches.is_present(OPT_SUFFIX) {
-        matches.value_of(OPT_SUFFIX).map(String::from).unwrap()
-    } else if let (Ok(s), BackupMode::SimpleBackup) =
-        (env::var("SIMPLE_BACKUP_SUFFIX"), backup_mode)
-    {
-        s
-    } else {
-        "~".to_owned()
     }
 }
 
@@ -389,10 +348,10 @@ fn rename(from: &PathBuf, to: &PathBuf, b: &Behavior) -> io::Result<()> {
         };
 
         backup_path = match b.backup {
-            BackupMode::NoBackup => None,
-            BackupMode::SimpleBackup => Some(simple_backup_path(to, &b.suffix)),
-            BackupMode::NumberedBackup => Some(numbered_backup_path(to)),
-            BackupMode::ExistingBackup => Some(existing_backup_path(to, &b.suffix)),
+            backup::BackupMode::NoBackup => None,
+            backup::BackupMode::SimpleBackup => Some(backup::simple_backup_path(to, &b.suffix)),
+            backup::BackupMode::NumberedBackup => Some(backup::numbered_backup_path(to)),
+            backup::BackupMode::ExistingBackup => Some(backup::existing_backup_path(to, &b.suffix)),
         };
         if let Some(ref backup_path) = backup_path {
             rename_with_fallback(to, backup_path)?;
@@ -504,28 +463,6 @@ fn read_yes() -> bool {
             _ => false,
         },
         _ => false,
-    }
-}
-
-fn simple_backup_path(path: &PathBuf, suffix: &str) -> PathBuf {
-    let mut p = path.to_string_lossy().into_owned();
-    p.push_str(suffix);
-    PathBuf::from(p)
-}
-
-fn numbered_backup_path(path: &PathBuf) -> PathBuf {
-    (1_u64..)
-        .map(|i| path.with_extension(format!("~{}~", i)))
-        .find(|p| !p.exists())
-        .expect("cannot create backup")
-}
-
-fn existing_backup_path(path: &PathBuf, suffix: &str) -> PathBuf {
-    let test_path = path.with_extension("~1~");
-    if test_path.exists() {
-        numbered_backup_path(path)
-    } else {
-        simple_backup_path(path, suffix)
     }
 }
 

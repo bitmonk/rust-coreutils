@@ -38,6 +38,8 @@ pub use crate::features::fs;
 pub use crate::features::parse_time;
 #[cfg(feature = "zero-copy")]
 pub use crate::features::zero_copy;
+//#[cfg(feature = "backup")]
+pub use crate::features::backup;
 
 // * (platform-specific) feature-gated modules
 // ** non-windows
