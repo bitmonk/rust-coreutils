@@ -61,59 +61,242 @@ fn parse_code(
     std::char::from_u32(ret)
 }
 
-fn print_escaped(input: &str, mut output: impl Write) -> io::Result<bool> {
-    let mut should_stop = false;
+### BEGIN RUST STUBS FROM C DD CODE
+### Source: https://github.com/coreutils/coreutils/blob/master/src/dd.c
 
-    let mut buffer = ['\\'; 2];
 
-    let mut iter = input.chars().peekable();
-    while let Some(mut c) = iter.next() {
-        let mut start = 1;
+/* True if we need to close the standard output *stream*.  */
+static close_stdout_required: bool = true;
 
-        if c == '\\' {
-            if let Some(next) = iter.next() {
-                c = match next {
-                    '\\' => '\\',
-                    'a' => '\x07',
-                    'b' => '\x08',
-                    'c' => {
-                        should_stop = true;
-                        break;
-                    }
-                    'e' => '\x1b',
-                    'f' => '\x0c',
-                    'n' => '\n',
-                    'r' => '\r',
-                    't' => '\t',
-                    'v' => '\x0b',
-                    'x' => parse_code(&mut iter, 16, 2, 4).unwrap_or_else(|| {
-                        start = 0;
-                        next
-                    }),
-                    '0' => parse_code(&mut iter, 8, 3, 3).unwrap_or_else(|| {
-                        start = 0;
-                        next
-                    }),
-                    _ => {
-                        start = 0;
-                        next
-                    }
-                };
-            }
-        }
+/* The only reason to close the standard output *stream* is if
+   parse_long_options fails (as it does for --help or --version).
+   In any other case, dd uses only the STDOUT_FILENO file descriptor,
+   and the "cleanup" function calls "close (STDOUT_FILENO)".
+   Closing the file descriptor and then letting the usual atexit-run
+   close_stdout function call "fclose (stdout)" would result in a
+   harmless failure of the close syscall (with errno EBADF).
+   This function serves solely to avoid the unnecessary close_stdout
+   call, once parse_long_options has succeeded.
+   Meanwhile, we guarantee that the standard error stream is flushed,
+   by inlining the last half of close_stdout as needed.  */
 
-        buffer[1] = c;
+fn maybe_close_stdout() {}
 
-        // because printing char slices is apparently not available in the standard library
-        for ch in &buffer[start..] {
-            write!(output, "{}", ch)?;
-        }
-    }
+/* Like the 'error' function but handle any pending newline.  */
 
-    Ok(should_stop)
+fn _GL_ATTRIBUTE_FORMAT() {}
+
+/* fn usage() {} */
+
+/* Common options to use when displaying sizes and rates.  */
+
+enum human_opts {
+  human_autoscale,
+  human_round_to_nearest,
+  human_space_before_unit,
+  human_SI,
+  human_Bi
 }
 
-pub fn uumain(args: impl uucore::Args) -> i32 {
+/* Ensure input buffer IBUF is allocated.  */
+
+fn alloc_ibuf() {}
+
+fn translate_charset() {}
+
+/* Return true if I has more than one bit set.  I must be nonnegative.  */
+
+fn multiple_bits_set() {}
+
+fn abbreviation_lacks_prefix() {}
+
+/* Print transfer statistics.  */
+
+fn print_xfer_stats() {}
+
+fn print_stats() {}
+
+/* An ordinary signal was received; arrange for the program to exit.  */
+
+fn interrupt_handler() {}
+
+/* An info signal was received; arrange for the program to print status.  */
+
+fn siginfo_handler() {}
+
+/* Install the signal handlers.  */
+
+fn install_signal_handlers() {}
+
+/* Close FD.  Return 0 if successful, -1 (setting errno) otherwise.
+   If close fails with errno == EINTR, POSIX says the file descriptor
+   is in an unspecified state, so keep trying to close FD but do not
+   consider EBADF to be an error.  Do not process signals.  This all
+   differs somewhat from functions like ifdatasync and ifsync.  */
+
+fn iclose() {}
+
+fn cleanup() {}
+
+/* Process any pending signals.  If signals are caught, this function
+   should be called periodically.  Ideally there should never be an
+   unbounded amount of time when signals are not being processed.  */
+
+fn process_signals() {}
+
+fn finish_up() {}
+
+fn quit() {}
+
+/* Return LEN rounded down to a multiple of IO_BUFSIZE
+   (to minimize calls to the expensive posix_fadvise(,POSIX_FADV_DONTNEED),
+   while storing the remainder internally per FD.
+   Pass LEN == 0 to get the current remainder.  */
+
+fn cache_round() {}
+
+/* Discard the cache from the current offset of either
+   STDIN_FILENO or STDOUT_FILENO.
+   Return true on success.  */
+
+fn invalidate_cache() {}
+
+/* Read from FD into the buffer BUF of size SIZE, processing any
+   signals that arrive before bytes are read.  Return the number of
+   bytes read if successful, -1 (setting errno) on failure.  */
+
+fn iread() {}
+
+/* Wrapper around iread function to accumulate full blocks.  */
+
+fn iread_fullblock() {}
+
+/* Write to FD the buffer BUF of size SIZE, processing any signals
+   that arrive.  Return the number of bytes written, setting errno if
+   this is less than SIZE.  Keep trying if there are partial
+   writes.  */
+
+fn iwrite() {}
+
+/* Write, then empty, the output buffer 'obuf'. */
+
+fn write_output() {}
+
+/* Restart on EINTR from fdatasync.  */
+
+fn ifdatasync() {}
+
+/* Restart on EINTR from fd_reopen.  */
+
+fn ifd_reopen() {}
+
+/* Restart on EINTR from fstat.  */
+
+fn ifstat() {}
+
+/* Restart on EINTR from fsync.  */
+
+fn ifsync() {}
+
+/* Restart on EINTR from ftruncate.  */
+
+fn iftruncate() {}
+
+/* Return true if STR is of the form "PATTERN" or "PATTERNDELIM...".  */
+
+fn operand_matches() {}
+
+/* Interpret one "conv=..." or similar operand STR according to the
+   symbols in TABLE, returning the flags specified.  If the operand
+   cannot be parsed, use ERROR_MSGID to generate a diagnostic.  */
+
+fn parse_symbols() {}
+
+/* Return the value of STR, interpreted as a non-negative decimal integer,
+   optionally multiplied by various values.
+   Set *INVALID to a nonzero error value if STR does not represent a
+   number in this format.  */
+
+fn parse_integer() {}
+
+/* OPERAND is of the form "X=...".  Return true if X is NAME.  */
+
+fn operand_is() {}
+
+fn scanargs() {}
+
+/* Fix up translation table. */
+
+fn apply_translations() {}
+
+/* Apply the character-set translations specified by the user
+   to the NREAD bytes in BUF.  */
+
+fn translate_buffer() {}
+
+/* If true, the last char from the previous call to 'swab_buffer'
+   is saved in 'saved_char'.  */
+static char_is_saved: bool = false;
+
+/* Odd char from previous call.  */
+static saved_char: char;
+
+/* Swap NREAD bytes in BUF, plus possibly an initial char from the
+   previous call.  If NREAD is odd, save the last char for the
+   next call.   Return the new start of the BUF buffer.  */
+
+fn swab_buffer() {}
+
+/* Add OFFSET to the input offset, setting the overflow flag if
+   necessary.  */
+
+fn advance_input_offset() {}
+
+/* Throw away RECORDS blocks of BLOCKSIZE bytes plus BYTES bytes on
+   file descriptor FDESC, which is open with read permission for FILE.
+   Store up to BLOCKSIZE bytes of the data at a time in IBUF or OBUF, if
+   necessary. RECORDS or BYTES must be nonzero. If FDESC is
+   STDIN_FILENO, advance the input offset. Return the number of
+   records remaining, i.e., that were not skipped because EOF was
+   reached.  If FDESC is STDOUT_FILENO, on return, BYTES is the
+   remaining bytes in addition to the remaining records.  */
+
+fn skip() {}
+
+/* Advance the input by NBYTES if possible, after a read error.
+   The input file offset may or may not have advanced after the failed
+   read; adjust it to point just after the bad record regardless.
+   Return true if successful, or if the input is already known to not
+   be seekable.  */
+
+fn advance_input_after_read_error() {}
+
+/* Copy NREAD bytes of BUF, with no conversions.  */
+
+fn copy_simple() {}
+
+/* Copy NREAD bytes of BUF, doing conv=block
+   (pad newline-terminated records to 'conversion_blocksize',
+   replacing the newline with trailing spaces).  */
+
+fn copy_with_block() {}
+
+/* Copy NREAD bytes of BUF, doing conv=unblock
+   (replace trailing spaces in 'conversion_blocksize'-sized records
+   with a newline).  */
+
+fn copy_with_unblock() {}
+
+/* Set the file descriptor flags for FD that correspond to the nonzero bits
+   in ADD_FLAGS.  The file's name is NAME.  */
+
+fn set_fd_flags() {}
+
+/* The main loop.  */
+
+fn dd_copy() {}
+
+ub fn uumain(args: impl uucore::Args) -> i32 {
     let matches = App::new(executable!())
         .name(NAME)
         // TrailingVarArg specifies the final positional argument is a VarArg
